@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: joblisting-ingress
+  namespace: joblisting
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: joblisting.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: joblisting-frontend-service
+                port:
+                  number: 80
+    - host: api.joblisting.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: joblisting-backend-service
+                port:
+                  number: 8080

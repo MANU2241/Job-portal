@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: joblisting-frontend-deployment
+  namespace: joblisting
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: joblisting-frontend
+  template:
+    metadata:
+      labels:
+        app: joblisting-frontend
+    spec:
+      containers:
+        - name: joblisting-frontend
+          image: jmmanu/joblisting-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: joblisting-frontend-service
+  namespace: joblisting
+spec:
+  selector:
+    app: joblisting-frontend
+  ports:
+    - port: 80        # Service port
+      targetPort: 80  # Container port
+  type: ClusterIP

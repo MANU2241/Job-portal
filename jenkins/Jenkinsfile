@@ -1,0 +1,109 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY  = 'YOUR_DOCKER_USERNAME'
+        BACKEND_IMAGE    = "${DOCKER_REGISTRY}/joblisting-backend"
+        FRONTEND_IMAGE   = "${DOCKER_REGISTRY}/joblisting-frontend"
+        DOCKER_CREDS_ID  = 'dockerhub-creds'
+
+        // Windows kubectl path
+        KUBECTL = '"C:\\Program Files\\Docker\\Docker\\resources\\bin\\kubectl.exe"'
+
+        K8S_NAMESPACE = 'joblisting'
+    }
+
+    triggers {
+        // Option 1: GitHub webhook
+        githubPush()
+        
+        // OR Option 2: Poll SCM every 5 minutes
+        // pollSCM('H/5 * * * *')
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                dir('backend') {
+                    bat 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                dir('frontend') {
+                    bat 'npm install'
+                    bat 'npm run build'
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    // Build backend image
+                    bat "docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} -f backend/Dockerfile backend"
+
+                    // Build frontend image
+                    bat "docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} -f frontend/Dockerfile frontend"
+
+                    // Tag latest
+                    bat "docker tag ${BACKEND_IMAGE}:${BUILD_NUMBER} ${BACKEND_IMAGE}:latest"
+                    bat "docker tag ${FRONTEND_IMAGE}:${BUILD_NUMBER} ${FRONTEND_IMAGE}:latest"
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: DOCKER_CREDS_ID,
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        bat """
+                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                        docker push ${BACKEND_IMAGE}:${BUILD_NUMBER}
+                        docker push ${BACKEND_IMAGE}:latest
+                        docker push ${FRONTEND_IMAGE}:${BUILD_NUMBER}
+                        docker push ${FRONTEND_IMAGE}:latest
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    bat "${KUBECTL} apply -f k8s/namespace.yaml"
+                    bat "${KUBECTL} apply -f k8s/backend-deployment.yaml"
+                    bat "${KUBECTL} apply -f k8s/backend-service.yaml"
+                    bat "${KUBECTL} apply -f k8s/frontend-deployment.yaml"
+                    bat "${KUBECTL} apply -f k8s/frontend-service.yaml"
+                    bat "${KUBECTL} apply -f k8s/ingress.yaml"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "CI/CD Pipeline completed successfully!"
+            echo "Frontend: http://joblisting.local"
+            echo "Backend:  http://api.joblisting.local"
+        }
+        failure {
+            echo "Pipeline failed. Check build logs."
+        }
+    }
+}
