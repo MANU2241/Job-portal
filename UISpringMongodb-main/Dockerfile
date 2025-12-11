@@ -1,24 +1,16 @@
-# ---------- Build stage ----------
-FROM node:18-alpine AS build
+# ---------- Build Stage ----------
+FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install deps
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
-# Build app
 COPY . .
 RUN npm run build
 
-# ---------- Runtime stage ----------
+# ---------- NGINX Runtime ----------
 FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
-
-# Copy build output to Nginx HTML folder
-COPY --from=build /app/build .
-
-# Optional: custom nginx.conf for SPA routing (React Router)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build /usr/share/nginx/html
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
