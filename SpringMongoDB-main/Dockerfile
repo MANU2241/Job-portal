@@ -9,11 +9,8 @@ COPY src ./src
 RUN mvn -B package -DskipTests
 
 # ---------- Runtime Stage ----------
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-jammy  
 WORKDIR /app
-
-# Install CA certificates (required for MongoDB Atlas TLS)
-RUN apk add --no-cache ca-certificates && update-ca-certificates
 
 COPY --from=build /app/target/*.jar app.jar
 
