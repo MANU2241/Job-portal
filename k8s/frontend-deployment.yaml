@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: joblisting-frontend
-          image: jmmanu/joblisting-frontend:latest
+          image: jmmanu/jobportal-frontend:latest   # <-- FIXED IMAGE NAME
           imagePullPolicy: Always
           ports:
             - containerPort: 80

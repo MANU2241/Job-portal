@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: joblisting-backend
-          image: jmmanu/joblisting-backend:latest
+          image: jmmanu/jobportal-backend:latest    # <-- FIXED IMAGE NAME
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -24,4 +24,3 @@ spec:
               value: "mongodb+srv://manu:root123@cluster0.r7jbx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
             - name: SPRING_DATA_MONGODB_DATABASE
               value: "joblisting"
-
