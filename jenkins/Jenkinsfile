@@ -1,47 +1,48 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'node20'
+        maven 'M3'
+    }
+
     environment {
-        DOCKER_REGISTRY  = 'YOUR_DOCKER_USERNAME'
-        BACKEND_IMAGE    = "${DOCKER_REGISTRY}/joblisting-backend"
-        FRONTEND_IMAGE   = "${DOCKER_REGISTRY}/joblisting-frontend"
-        DOCKER_CREDS_ID  = 'dockerhub-creds'
+        DOCKER_REGISTRY = 'YOUR_USER_NAME'
+        BACKEND_IMAGE   = "${DOCKER_REGISTRY}/jobportal-backend"
+        FRONTEND_IMAGE  = "${DOCKER_REGISTRY}/jobportal-frontend"
+        DOCKER_CREDS_ID = 'dockerhub-creds'
 
-        // Windows kubectl path
         KUBECTL = '"C:\\Program Files\\Docker\\Docker\\resources\\bin\\kubectl.exe"'
-
         K8S_NAMESPACE = 'joblisting'
     }
 
     triggers {
-        // Option 1: GitHub webhook
         githubPush()
-        
-        // OR Option 2: Poll SCM every 5 minutes
-        // pollSCM('H/5 * * * *')
+        pollSCM('H/5 * * * *')
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout from GitHub') {
             steps {
-                checkout scm
+                git branch: 'main', 
+                    url: 'https://github.com/MANU2241/Job-portal.git'
             }
         }
 
-        stage('Build Backend') {
+        stage('Build Backend (Spring Boot)') {
             steps {
-                dir('backend') {
-                    bat 'mvn clean package -DskipTests'
+                dir('SpringMongoDB-main') {
+                    bat "mvn clean package -DskipTests"
                 }
             }
         }
 
-        stage('Build Frontend') {
+        stage('Build Frontend (React)') {
             steps {
-                dir('frontend') {
-                    bat 'npm install'
-                    bat 'npm run build'
+                dir('UISpringMongodb-main') {
+                    bat "npm install"
+                    bat "npm run build"
                 }
             }
         }
@@ -49,13 +50,9 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    // Build backend image
-                    bat "docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} -f backend/Dockerfile backend"
+                    bat "docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} -f SpringMongoDB-main/Dockerfile SpringMongoDB-main"
+                    bat "docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} -f UISpringMongodb-main/Dockerfile UISpringMongodb-main"
 
-                    // Build frontend image
-                    bat "docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} -f frontend/Dockerfile frontend"
-
-                    // Tag latest
                     bat "docker tag ${BACKEND_IMAGE}:${BUILD_NUMBER} ${BACKEND_IMAGE}:latest"
                     bat "docker tag ${FRONTEND_IMAGE}:${BUILD_NUMBER} ${FRONTEND_IMAGE}:latest"
                 }
@@ -98,12 +95,10 @@ pipeline {
 
     post {
         success {
-            echo "CI/CD Pipeline completed successfully!"
-            echo "Frontend: http://joblisting.local"
-            echo "Backend:  http://api.joblisting.local"
+            echo "🚀 Deployment Successful!"
         }
         failure {
-            echo "Pipeline failed. Check build logs."
+            echo "❌ Pipeline Failed — Check Logs."
         }
     }
 }
